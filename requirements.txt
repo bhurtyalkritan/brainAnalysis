@@ -1,4 +1,3 @@
-altair @ file:///C:/b/abs_27reu1igbg/croot/altair_1687526066495/work
 anyio @ file:///C:/b/abs_847uobe7ea/croot/anyio_1706220224037/work
 apptools==5.2.1
 argon2-cffi @ file:///opt/conda/conda-bld/argon2-cffi_1645000214183/work
