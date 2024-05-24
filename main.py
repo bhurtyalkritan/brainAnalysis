@@ -88,8 +88,6 @@ def plot_3d_brain(data, labels_img):
     )
     return fig
 
-
-
 def skull_strip(nii_data):
     brain_mask = compute_brain_mask(nii_data)
     masked_img = nli.math_img("img1 * img2", img1=nii_data, img2=brain_mask)
@@ -195,8 +193,9 @@ if uploaded_file:
                     time_series = time_series.iloc[:num_time_points]
 
         with st.expander("3D View"):
-            fig_3d = plot_3d_brain(data, labels_img)
-            st.plotly_chart(fig_3d, use_container_width=True)
+            if segmentation_applied:
+                fig_3d = plot_3d_brain(data, labels_img)
+                st.plotly_chart(fig_3d, use_container_width=True)
 
         if segmentation_applied:
             stats = calculate_region_statistics(data, labels_img)
