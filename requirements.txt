@@ -69,9 +69,6 @@ matplotlib-inline
 mayavi==4.8.1
 mdurl
 mistune
-mkl-fft
-mkl-random
-mkl-service==2.4.0
 nbclient
 nbconvert
 nbformat
