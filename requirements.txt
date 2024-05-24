@@ -11,7 +11,6 @@ beautifulsoup4
 bleach
 blinker
 Bottleneck
-bqplot==0.12.43
 Brotli
 cachetools
 certifi
@@ -39,105 +38,114 @@ ipydatawidgets==4.3.5
 ipykernel
 ipython
 ipython-genutils
-   ipyvolume==0.6.3
-   ipyvue==1.11.1
-   ipyvuetify==1.9.4
-   ipywebrtc==0.6.0
-   ipywidgets
-   jedi
-   Jinja2
-   joblib==1.4.2
-   json5
-   jsonschema
-   jsonschema-specifications
-   jupyter-events
-   jupyter-lsp
-   jupyter_client
-   jupyter_core
-   jupyter_server
-   jupyter_server_terminals
-   jupyterlab
-   jupyterlab-pygments
-   jupyterlab-widgets
-   jupyterlab_server
-   kiwisolver==1.4.5
-   lxml==5.2.2
-   markdown-it-py
-   MarkupSafe
-   matplotlib-inline
-   mayavi==4.8.1
-   mdurl
-   mistune
-   nbclient
-   nbconvert
-   nbformat
-   nest-asyncio
-   nibabel==5.2.1
-   nilearn==0.10.4
-   notebook
-   notebook_shim
-   numexpr
-   overrides
-   packaging
-   pandocfilters
-   parso
-   patsy==0.5.3
-   pillow
-   platformdirs
-   plotly
-   prometheus-client
-   prompt-toolkit
-   protobuf==3.20.3
-   psutil
-   pure-eval
-   pyarrow
-   pycparser
-   pydeck
-   pyface==8.0.0
-   Pygments
-   pyparsing==3.1.2
-   PySocks
-   python-dateutil
-   python-json-logger
-   pythreejs==2.4.2
-   pytz
-   pywin32==305.1
-   pywinpty
-   PyYAML
-   pyzmq
-   referencing
-   requests
-   rfc3339-validator
-   rfc3986-validator
-   rich
-   rpds-py
-   Send2Trash
-   six
-   smmap
-   sniffio
-   soupsieve
-   stack-data
-   statsmodels
-   streamlit
-   tenacity
-   terminado
-   threadpoolctl==3.5.0
-   tinycss2
-   toml
-   tomli
-   toolz
-   tornado
-   traitlets==5.14.3
-   traits==6.4.3
-   traitsui==8.0.0
-   traittypes==0.2.1
-   typing_extensions
-   tzdata
-   urllib3
-   watchdog
-   wcwidth==0.2.13
-   webencodings==0.5.1
-   websocket-client
-   widgetsnbextension
-   win-inet-pton
-   wxPython==4.2.1
+ipyvolume==0.6.3
+ipyvue==1.11.1
+ipyvuetify==1.9.4
+ipywebrtc==0.6.0
+ipywidgets
+jedi
+Jinja2
+joblib==1.4.2
+json5
+jsonschema
+jsonschema-specifications
+jupyter-events
+jupyter-lsp
+jupyter_client
+jupyter_core
+jupyter_server
+jupyter_server_terminals
+jupyterlab
+jupyterlab-pygments
+jupyterlab-widgets
+jupyterlab_server
+kiwisolver==1.4.5
+lxml==5.2.2
+markdown-it-py
+MarkupSafe
+matplotlib==3.9.0
+matplotlib-inline
+mayavi==4.8.1
+mdurl
+mistune
+mkl-fft
+mkl-random
+mkl-service==2.4.0
+nbclient
+nbconvert
+nbformat
+nest-asyncio
+nibabel==5.2.1
+nilearn==0.10.4
+notebook
+notebook_shim
+numexpr
+numpy
+overrides
+packaging
+pandas
+pandocfilters
+parso
+patsy==0.5.3
+pillow
+platformdirs
+plotly
+prometheus-client
+prompt-toolkit
+protobuf==3.20.3
+psutil
+pure-eval
+pyarrow
+pycparser
+pydeck
+pyface==8.0.0
+Pygments
+pyparsing==3.1.2
+PySocks
+python-dateutil
+python-json-logger
+pythreejs==2.4.2
+pytz
+pywin32==305.1
+pywinpty
+PyYAML
+pyzmq
+referencing
+requests
+rfc3339-validator
+rfc3986-validator
+rich
+rpds-py
+scikit-learn==1.5.0
+scipy
+Send2Trash
+six
+smmap
+sniffio
+soupsieve
+stack-data
+statsmodels
+streamlit
+tenacity
+terminado
+threadpoolctl==3.5.0
+tinycss2
+toml
+tomli
+toolz
+tornado
+traitlets==5.14.3
+traits==6.4.3
+traitsui==8.0.0
+traittypes==0.2.1
+typing_extensions
+tzdata
+urllib3
+vtk==9.3.0
+watchdog
+wcwidth==0.2.13
+webencodings==0.5.1
+websocket-client
+widgetsnbextension
+win-inet-pton
+wxPython==4.2.1
