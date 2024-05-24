@@ -10,7 +10,7 @@ from nilearn.plotting import plot_roi, show
 import pandas as pd
 import statsmodels.api as sm
 
-# Load an atlas for segmentation
+
 atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
 
 
@@ -155,10 +155,10 @@ if uploaded_file:
             uploaded_csv = st.file_uploader("Upload time-series data (CSV) for GLM Analysis", type=["csv"])
             if uploaded_csv:
                 time_series = pd.read_csv(uploaded_csv)
-                time_series = sm.add_constant(time_series)  # Add a constant term for the intercept
+                time_series = sm.add_constant(time_series)
 
-                num_time_points = data.shape[-1]  # Number of time points in NIfTI file
-                num_time_points = min(num_time_points, time_series.shape[0])  # Use the smaller of the two
+                num_time_points = data.shape[-1] 
+                num_time_points = min(num_time_points, time_series.shape[0])  
 
                 if num_time_points >= 2:
                     selected_region = st.selectbox("Select Region for GLM Analysis",
