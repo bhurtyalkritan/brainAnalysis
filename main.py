@@ -51,7 +51,8 @@ def plot_highlighted_slice(data, slice_number, axis, labels_img, region_label):
 
 
 def plot_3d_brain(data):
-    x, y, z = np.where(data > np.percentile(data, 95))
+    coords = np.array(np.nonzero(data > np.percentile(data, 95)))
+    x, y, z = coords
     intensity = data[x, y, z]
     fig = go.Figure(data=[go.Mesh3d(
         x=x, y=y, z=z,
@@ -188,6 +189,20 @@ if uploaded_file:
                     t_test = results.t_test([1] + [0] * (time_series.shape[1] - 1))
                     st.write("T-test results:")
                     st.write(t_test.summary_frame())
+
+                    st.write("**GLM Analysis Report:**")
+                    st.write(f"The General Linear Model (GLM) analysis for the selected region '{selected_region}' revealed the following key results:")
+                    st.write(f"- **R-squared**: {results.rsquared:.4f}, indicating that {results.rsquared*100:.2f}% of the variance in the brain activity is explained by the model.")
+                    st.write(f"- **F-statistic**: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.")
+                    st.write(f"- **Coefficients**:")
+                    coef_df = pd.DataFrame({"Coefficient": results.params, "Std Error": results.bse, "t-value": results.tvalues, "p-value": results.pvalues})
+                    st.table(coef_df)
+
+                    if t_test.tvalue[0] > 1.96 or t_test.tvalue[0] < -1.96:
+                        st.write("The t-test for the intercept is statistically significant at the 0.05 level, indicating that there is a significant relationship between the intercept and the brain activity in the selected region.")
+                    else:
+                        st.write("The t-test for the intercept is not statistically significant at the 0.05 level, suggesting that the relationship between the intercept and the brain activity in the selected region is not significant.")
+
             else:
                 st.write(
                     "Time series data not inputted or not enough data points for GLM analysis. Please upload time series data with at least 2 points for GLM analysis.")
