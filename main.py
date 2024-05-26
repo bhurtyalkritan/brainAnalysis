@@ -15,6 +15,10 @@ import tempfile
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer, Table, TableStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
+from reportlab.lib import colors
 
 # Load an atlas for segmentation
 atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
@@ -161,116 +165,124 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
 
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results, selected_region):
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
+    doc = SimpleDocTemplate(buffer, pagesize=letter,
+                            rightMargin=72, leftMargin=72,
+                            topMargin=72, bottomMargin=18)
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY))
+    styles.add(ParagraphStyle(name='Left', alignment=TA_LEFT))
+    styles.add(ParagraphStyle(name='Center', alignment=TA_CENTER))
 
-    def draw_paragraph(c, text, x, y, max_width):
-        lines = text.split('\n')
-        for line in lines:
-            c.drawString(x, y, line)
-            y -= 14
-        return y
+    Story = []
 
-    c.setFont("Helvetica", 16)
-    c.drawString(72, height - 72, "Brain Analysis Report")
+    # Title
+    Story.append(Paragraph("Brain Analysis Report", styles['Title']))
+    Story.append(Spacer(1, 12))
 
-    c.setFont("Helvetica", 12)
-    y = height - 96
-    intro_text = """This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). 
+    # Introduction
+    intro_text = """
+    This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). 
     The GLM approach allows for flexible modeling of various types of response variables, including count data, binary data, 
     and continuous positive values. In this analysis, we focus on a specific region of the brain and assess its activity over 
-    time using time-series data."""
-    y = draw_paragraph(c, intro_text, 72, y, width - 144)
+    time using time-series data.
+    """
+    Story.append(Paragraph(intro_text, styles['Justify']))
+    Story.append(Spacer(1, 12))
 
-    y -= 20
-    c.drawString(72, y, "1. Exploratory Data Analysis")
-    y -= 14
-    eda_text = """The following charts provide an overview of the data distribution and intensity values across different brain regions."""
-    y = draw_paragraph(c, eda_text, 72, y, width - 144)
+    # Section 1: Exploratory Data Analysis
+    eda_text = """
+    <b>1. Exploratory Data Analysis</b><br/>
+    The following charts provide an overview of the data distribution and intensity values across different brain regions.
+    """
+    Story.append(Paragraph(eda_text, styles['Justify']))
+    Story.append(Spacer(1, 12))
 
-    # Add EDA plots
+    # Add Scatter Plot
     scatter_buffer = io.BytesIO()
     fig_scatter.write_image(scatter_buffer, format="png")
     scatter_buffer.seek(0)
-    scatter_image = scatter_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(scatter_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
-    y -= 260
+    scatter_image = Image(scatter_buffer, 6*inch, 4*inch)
+    scatter_image.hAlign = 'CENTER'
+    Story.append(scatter_image)
+    Story.append(Spacer(1, 12))
 
-    c.showPage()
-    pie_buffer = io.BytesIO()
-    fig_pie.write_image(pie_buffer, format="png")
-    pie_buffer.seek(0)
-    pie_image = pie_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(pie_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
-    y = height - 380
-
-    y -= 20
-    c.drawString(72, y, "2. General Linear Model (GLM) Analysis")
-    y -= 14
-    glm_text = """The General Linear Model (GLM) is used to assess the relationship between brain activity and the provided time-series data. 
+    # Section 2: General Linear Model (GLM) Analysis
+    glm_text = """
+    <b>2. General Linear Model (GLM) Analysis</b><br/>
+    The General Linear Model (GLM) is used to assess the relationship between brain activity and the provided time-series data. 
     The model is defined as:
+    <br/><br/>
     Y = Xβ + ε
-    where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term."""
-    y = draw_paragraph(c, glm_text, 72, y, width - 144)
+    <br/><br/>
+    where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term.
+    """
+    Story.append(Paragraph(glm_text, styles['Justify']))
+    Story.append(Spacer(1, 12))
 
-    y -= 20
-    c.drawString(72, y, "3. Implementation Process")
-    y -= 14
-    impl_text = """The GLM analysis was performed using the following steps:
-    1. Load the NIfTI file and preprocess the data.
-    2. Apply segmentation to identify brain regions.
-    3. Extract time-series data for the selected region.
-    4. Fit the GLM model to the data.
-    5. Evaluate the model performance and interpret the results."""
-    y = draw_paragraph(c, impl_text, 72, y, width - 144)
+    # Section 3: Implementation Process
+    impl_text = """
+    <b>3. Implementation Process</b><br/>
+    The GLM analysis was performed using the following steps:
+    <br/><br/>
+    1. Load the NIfTI file and preprocess the data.<br/>
+    2. Apply segmentation to identify brain regions.<br/>
+    3. Extract time-series data for the selected region.<br/>
+    4. Fit the GLM model to the data.<br/>
+    5. Evaluate the model performance and interpret the results.
+    """
+    Story.append(Paragraph(impl_text, styles['Justify']))
+    Story.append(Spacer(1, 12))
 
-    c.showPage()
-    y = height - 72
-    c.setFont("Helvetica", 12)
-    c.drawString(72, y, "4. Results")
-    y -= 14
-    results_text = f"""The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:
-    - Deviance: {results.deviance:.4f}
-    - Pearson Chi2: {results.pearson_chi2:.4f}
-    - Coefficients:"""
-    y = draw_paragraph(c, results_text, 72, y, width - 144)
+    # Section 4: Results
+    results_text = f"""
+    <b>4. Results</b><br/>
+    The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:
+    <br/><br/>
+    - Deviance: {results.deviance:.4f}<br/>
+    - Pearson Chi2: {results.pearson_chi2:.4f}<br/>
+    - Coefficients:
+    """
+    Story.append(Paragraph(results_text, styles['Justify']))
+    Story.append(Spacer(1, 12))
 
-    coef_df_str = coef_df.to_string(index=False)
-    text_lines = coef_df_str.split('\n')
-    for line in text_lines:
-        c.drawString(72, y, line)
-        y -= 14
+    # Add Coefficients Table
+    coef_data = [['Coefficient', 'Std Error', 'z-value', 'p-value']]
+    for i in range(len(results.params)):
+        coef_data.append([f'{results.params[i]:.6f}', f'{results.bse[i]:.6f}', f'{results.tvalues[i]:.6f}', f'{results.pvalues[i]:.6f}'])
+    table = Table(coef_data, colWidths=[2*inch, 2*inch, 2*inch, 2*inch])
+    table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                               ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                               ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                               ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+                               ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                               ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                               ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
+    Story.append(table)
+    Story.append(Spacer(1, 12))
 
-    c.showPage()
-    c.setFont("Helvetica", 12)
-    c.drawString(72, height - 72, "5. Scatter Plot of GLM Results")
+    # Section 5: Scatter Plot of GLM Results
+    Story.append(Paragraph("<b>5. Scatter Plot of GLM Results</b>", styles['Justify']))
+    Story.append(Spacer(1, 12))
+
     ts_buffer = io.BytesIO()
     fig_time_series.write_image(ts_buffer, format="png")
     ts_buffer.seek(0)
-    ts_image = ts_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(ts_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    ts_image = Image(ts_buffer, 6*inch, 4*inch)
+    ts_image.hAlign = 'CENTER'
+    Story.append(ts_image)
+    Story.append(Spacer(1, 12))
 
-    c.showPage()
-    y = height - 72
-    c.setFont("Helvetica", 12)
-    c.drawString(72, y, "6. Conclusion")
-    y -= 14
-    conclusion_text = """In conclusion, the General Linear Model (GLM) provides a powerful framework for analyzing brain activity data. 
-    This analysis demonstrated the significance of the selected brain region and its activity over time. The model's high R-squared value 
-    indicates a strong relationship between the predictors and the response variable. The findings from this study can aid in understanding 
-    brain function and potentially contribute to diagnosing and monitoring neurological conditions."""
-    y = draw_paragraph(c, conclusion_text, 72, y, width - 144)
+    # Section 6: Conclusion
+    conclusion_text = """
+    <b>6. Conclusion</b><br/>
+    In conclusion, the General Linear Model (GLM) provides a powerful framework for analyzing brain activity data. 
+    This analysis demonstrated the significance of the selected brain region and its activity over time. The model's high 
+    explained variance indicates a strong relationship between the predictors and the response variable. The findings from this 
+    study can aid in understanding brain function and potentially contribute to diagnosing and monitoring neurological conditions.
+    """
+    Story.append(Paragraph(conclusion_text, styles['Justify']))
 
-    c.save()
+    doc.build(Story)
     buffer.seek(0)
     return buffer
 
@@ -491,4 +503,3 @@ if uploaded_file:
                             st.download_button(label="Download Test Report", data=test_pdf_output,
                                                file_name="Test_Report.pdf", mime="application/pdf")
                             st.session_state.generate_test_pdf = False
-
