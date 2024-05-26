@@ -11,10 +11,12 @@ import pandas as pd
 import statsmodels.api as sm
 import io
 import json
-from fpdf import FPDF
 import tempfile
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
 
-
+# Load an atlas for segmentation
 atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
 atlas_labels = atlas['labels']
 
@@ -155,6 +157,105 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
                   labels={'x': 'Time Point', 'y': 'Mean Intensity'},
                   title=f'Mean Intensity Over Time for {atlas_labels[int(region_label)]}')
     return fig
+
+
+def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results, selected_region):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    c.setFont("Helvetica", 16)
+    c.drawString(72, height - 72, "Brain Analysis Report")
+
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 96, "Exploratory Data Analysis")
+    c.drawString(72, height - 120, "The following charts provide an overview of the data distribution and intensity values across different brain regions.")
+
+    # Add EDA plots
+    scatter_buffer = io.BytesIO()
+    fig_scatter.write_image(scatter_buffer, format="png")
+    scatter_buffer.seek(0)
+    scatter_image = scatter_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(scatter_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+
+    c.showPage()
+    pie_buffer = io.BytesIO()
+    fig_pie.write_image(pie_buffer, format="png")
+    pie_buffer.seek(0)
+    pie_image = pie_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(pie_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 300, width=width - 144, preserveAspectRatio=True)
+
+    c.showPage()
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 72, "General Linear Model (GLM) Formula")
+    c.drawString(72, height - 96, "The General Linear Model (GLM) is used to assess the relationship between the brain activity and the provided time-series data. The model is defined as:")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(72, height - 120, "Y = Xβ + ε")
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 144, "Where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term.")
+
+    c.showPage()
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 72, "Implementation Process")
+    c.drawString(72, height - 96, "The GLM analysis was performed using the following steps:")
+    c.drawString(72, height - 120, "1. Load the NIfTI file and preprocess the data.")
+    c.drawString(72, height - 144, "2. Apply segmentation to identify brain regions.")
+    c.drawString(72, height - 168, "3. Extract time-series data for the selected region.")
+    c.drawString(72, height - 192, "4. Fit the GLM model to the data.")
+    c.drawString(72, height - 216, "5. Evaluate the model performance and interpret the results.")
+
+    c.showPage()
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 72, "Results")
+    c.drawString(72, height - 96, f"The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:")
+    c.drawString(72, height - 120, f"- R-squared: {results.rsquared:.4f}, indicating that {results.rsquared * 100:.2f}% of the variance in the brain activity is explained by the model.")
+    c.drawString(72, height - 144, f"- F-statistic: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.")
+    c.drawString(72, height - 168, "- Coefficients:")
+
+    coef_df_str = coef_df.to_string(index=False)
+    text_lines = coef_df_str.split('\n')
+    y_position = height - 192
+    for line in text_lines:
+        c.drawString(72, y_position, line)
+        y_position -= 14
+
+    c.showPage()
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 72, "Scatter Plot of GLM Results")
+    ts_buffer = io.BytesIO()
+    fig_time_series.write_image(ts_buffer, format="png")
+    ts_buffer.seek(0)
+    ts_image = ts_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(ts_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+
+def test_pdf():
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    c.setFont("Helvetica", 16)
+    c.drawString(72, height - 72, "Test PDF Report")
+
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 96, "This is a test report to check PDF generation.")
+
+    c.save()
+    buffer.seek(0)
+    return buffer
 
 
 # Initialize session state for annotations
@@ -300,7 +401,7 @@ if uploaded_file:
 
             if uploaded_csv and num_time_points >= 2:
                 with st.expander("GLM Results"):
-                    glm_model = sm.OLS(region_data.flatten()[:num_time_points], time_series)
+                    glm_model = sm.OLS(np.asarray(region_data).flatten()[:num_time_points], np.asarray(time_series))
                     results = glm_model.fit()
                     st.write(results.summary())
 
@@ -332,89 +433,27 @@ if uploaded_file:
                     fig_time_series = plot_time_series(time_series, mean_intensity_over_time, region_index)
                     st.plotly_chart(fig_time_series, use_container_width=True)
 
-                    # Add a button to generate PDF report
+                    # Button to trigger PDF generation
                     if st.button("Generate PDF Report"):
+                        st.session_state.generate_pdf = True
+
+                    # Check if the PDF should be generated
+                    if 'generate_pdf' in st.session_state and st.session_state.generate_pdf:
                         with st.spinner("Generating PDF report..."):
-                            pdf = FPDF()
-                            pdf.add_page()
-
-                            # Title
-                            pdf.set_font("Arial", size=16)
-                            pdf.cell(200, 10, txt="Brain Analysis Report", ln=True, align='C')
-
-                            # EDA Section
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt="Exploratory Data Analysis", ln=True)
-                            pdf.multi_cell(0, 10,
-                                           txt="The following charts provide an overview of the data distribution and intensity values across different brain regions.")
-
-                            # Add EDA plots
-                            scatter_buffer = io.BytesIO()
-                            fig_scatter.write_image(scatter_buffer, format="png")
-                            scatter_buffer.seek(0)
-                            scatter_image = scatter_buffer.read()
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                                tmpfile.write(scatter_image)
-                                tmpfile.flush()
-                                pdf.image(tmpfile.name, x=10, y=40, w=190)
-
-                            pdf.add_page()
-                            pie_buffer = io.BytesIO()
-                            fig_pie.write_image(pie_buffer, format="png")
-                            pie_buffer.seek(0)
-                            pie_image = pie_buffer.read()
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                                tmpfile.write(pie_image)
-                                tmpfile.flush()
-                                pdf.image(tmpfile.name, x=10, y=10, w=190)
-
-                            # GLM Formula
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt="General Linear Model (GLM) Formula", ln=True)
-                            pdf.multi_cell(0, 10,
-                                           txt="The General Linear Model (GLM) is used to assess the relationship between the brain activity and the provided time-series data. The model is defined as:")
-                            pdf.set_font("Arial", size=12, style='B')
-                            pdf.cell(200, 10, txt=r"$Y = X\beta + \epsilon$", ln=True)
-                            pdf.set_font("Arial", size=12)
-                            pdf.multi_cell(0, 10,
-                                           txt="Where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term.")
-
-                            # Implementation Process
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt="Implementation Process", ln=True)
-                            pdf.multi_cell(0, 10,
-                                           txt="The GLM analysis was performed using the following steps:\n1. Load the NIfTI file and preprocess the data.\n2. Apply segmentation to identify brain regions.\n3. Extract time-series data for the selected region.\n4. Fit the GLM model to the data.\n5. Evaluate the model performance and interpret the results.")
-
-                            # Results
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt="Results", ln=True)
-                            pdf.multi_cell(0, 10,
-                                           txt=f"The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:\n- R-squared: {results.rsquared:.4f}, indicating that {results.rsquared * 100:.2f}% of the variance in the brain activity is explained by the model.\n- F-statistic: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.\n- Coefficients:\n")
-
-                            # Add coefficients table
-                            coef_df_str = coef_df.to_string(index=False)
-                            pdf.set_font("Arial", size=10)
-                            pdf.multi_cell(0, 10, txt=coef_df_str)
-
-                            # Scatter plot of results
-                            pdf.add_page()
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt="Scatter Plot of GLM Results", ln=True)
-                            ts_buffer = io.BytesIO()
-                            fig_time_series.write_image(ts_buffer, format="png")
-                            ts_buffer.seek(0)
-                            ts_image = ts_buffer.read()
-                            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-                                tmpfile.write(ts_image)
-                                tmpfile.flush()
-                                pdf.image(tmpfile.name, x=10, y=30, w=190)
-
-                            # Save PDF
-                            pdf_output = io.BytesIO()
-                            pdf.output(pdf_output)
-                            pdf_output.seek(0)
+                            pdf_output = generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
+                                                             selected_region)
                             st.download_button(label="Download Report", data=pdf_output,
                                                file_name="Brain_Analysis_Report.pdf", mime="application/pdf")
+                            st.session_state.generate_pdf = False
+
+                    # Button to trigger test PDF generation
+                    if st.button("Generate Test PDF"):
+                        st.session_state.generate_test_pdf = True
+
+                    # Check if the test PDF should be generated
+                    if 'generate_test_pdf' in st.session_state and st.session_state.generate_test_pdf:
+                        with st.spinner("Generating Test PDF report..."):
+                            test_pdf_output = test_pdf()
+                            st.download_button(label="Download Test Report", data=test_pdf_output,
+                                               file_name="Test_Report.pdf", mime="application/pdf")
+                            st.session_state.generate_test_pdf = False
