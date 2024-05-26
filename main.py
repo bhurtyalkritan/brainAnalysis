@@ -185,6 +185,14 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
             y -= 14
         return y
 
+    def add_image(c, fig, x, y, width=400, height=300):
+        img_buffer = io.BytesIO()
+        fig.savefig(img_buffer, format='png')
+        img_buffer.seek(0)
+        img = Image(img_buffer, width=width, height=height)
+        c.drawImage(img_buffer, x, y, width=width, height=height)
+        return y - height - 20
+
     c.setFont("Times-Bold", 16)
     c.drawString(72, height - 72, "Brain Analysis Report")
 
@@ -204,75 +212,17 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     Additionally, 2D slice views (axial, coronal, sagittal) and a 3D brain plot are included to give a visual representation of the brain."""
     y = draw_paragraph(c, eda_text, 72, y, width - 144)
 
-    scatter_buffer = io.BytesIO()
-    fig_scatter.write_image(scatter_buffer, format="png")
-    scatter_buffer.seek(0)
-    scatter_image = scatter_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(scatter_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
-    y -= 260
+    y = add_image(c, fig_scatter, 72, y - 20, width=width - 144)
+    y = add_image(c, fig_pie, 72, y, width=width - 144)
+    y = add_image(c, fig_axial, 72, y, width=width - 144)
+    y = add_image(c, fig_coronal, 72, y, width=width - 144)
+    y = add_image(c, fig_sagittal, 72, y, width=width - 144)
+    y = add_image(c, fig_3d_brain, 72, y, width=width - 144)
 
     c.showPage()
-    pie_buffer = io.BytesIO()
-    fig_pie.write_image(pie_buffer, format="png")
-    pie_buffer.seek(0)
-    pie_image = pie_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(pie_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
-    y = height - 380
-
-    y -= 20
-    axial_buffer = io.BytesIO()
-    fig_axial.savefig(axial_buffer, format="png")
-    axial_buffer.seek(0)
-    axial_image = axial_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(axial_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
-    y -= 260
-
-    c.showPage()
-    coronal_buffer = io.BytesIO()
-    fig_coronal.savefig(coronal_buffer, format="png")
-    coronal_buffer.seek(0)
-    coronal_image = coronal_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(coronal_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
-    y = height - 380
-
-    y -= 20
-    sagittal_buffer = io.BytesIO()
-    fig_sagittal.savefig(sagittal_buffer, format="png")
-    sagittal_buffer.seek(0)
-    sagittal_image = sagittal_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(sagittal_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
-    y -= 260
-
-    c.showPage()
-    brain_3d_buffer = io.BytesIO()
-    fig_3d_brain.write_image(brain_3d_buffer, format="png")
-    brain_3d_buffer.seek(0)
-    brain_3d_image = brain_3d_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(brain_3d_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
-    y = height - 380
-
-    y -= 20
     c.setFont("Times-Bold", 14)
-    c.drawString(72, y, "2. General Linear Model (GLM) Analysis")
-    y -= 14
+    c.drawString(72, height - 72, "2. General Linear Model (GLM) Analysis")
+    y = height - 96
     glm_text = """The General Linear Model (GLM) is used to assess the relationship between brain activity and the provided time-series data. 
     The model is defined as:
     Y = Xβ + ε
@@ -309,16 +259,11 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         y -= 14
 
     c.showPage()
+    y = height - 72
     c.setFont("Times-Bold", 14)
-    c.drawString(72, height - 72, "5. Scatter Plot of GLM Results")
-    ts_buffer = io.BytesIO()
-    fig_time_series.write_image(ts_buffer, format="png")
-    ts_buffer.seek(0)
-    ts_image = ts_buffer.read()
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-        tmpfile.write(ts_image)
-        tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    c.drawString(72, y, "5. Scatter Plot of GLM Results")
+    y -= 20
+    y = add_image(c, fig_time_series, 72, y, width=width - 144)
 
     c.showPage()
     y = height - 72
@@ -353,7 +298,6 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     c.save()
     buffer.seek(0)
     return buffer
-
 def test_pdf():
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
