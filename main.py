@@ -164,50 +164,11 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
                         coef_df, results, selected_region):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Caption', fontSize=10, spaceAfter=6))
+    styles.add(ParagraphStyle(name='Caption', fontSize=10, leading=12, spaceAfter=6))
     elements = []
 
-    # Title
-    title = Paragraph("Brain Analysis Report", styles['Title'])
-    elements.append(title)
-    elements.append(Spacer(1, 12))
-
-    # Abstract
-    abstract_text = """This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM).
-    The GLM approach allows for flexible modeling of various types of response variables, including count data, binary data,
-    and continuous positive values. In this analysis, we focus on a specific region of the brain and assess its activity over
-    time using time-series data."""
-    abstract = Paragraph(abstract_text, styles['Normal'])
-    elements.append(abstract)
-    elements.append(Spacer(1, 12))
-
-    # Introduction
-    intro_text = """The aim of this study is to explore brain imaging data using advanced statistical techniques.
-    The introduction outlines the importance of the study, previous research, and the gaps that this research aims to fill.
-    We utilized neuroimaging data to identify patterns and significant changes in brain activity over time."""
-    introduction = Paragraph(intro_text, styles['Normal'])
-    elements.append(introduction)
-    elements.append(Spacer(1, 12))
-
-    # Methods
-    methods_text = """The methods section describes the approach taken in this research, including data collection and processing.
-    We used NiBabel for reading and writing neuroimaging files, and Nilearn for processing and analyzing the data.
-    Streamlit was employed to create an interactive web interface for analysis and visualization."""
-    methods = Paragraph(methods_text, styles['Normal'])
-    elements.append(methods)
-    elements.append(Spacer(1, 12))
-
-    # Exploratory Data Analysis
-    eda_text = """Exploratory Data Analysis (EDA) is crucial for understanding the underlying patterns in the data.
-    The following figures illustrate the data distribution and intensity values across different brain regions.
-    We present 2D slice views (axial, coronal, sagittal) and a 3D brain plot to provide a comprehensive visual representation."""
-    eda = Paragraph(eda_text, styles['Normal'])
-    elements.append(eda)
-    elements.append(Spacer(1, 12))
-
-    # Function to add image to the PDF
     def add_image(fig, elements, caption, is_plotly=False):
         img_buffer = io.BytesIO()
         if is_plotly:
@@ -215,18 +176,57 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         else:
             fig.savefig(img_buffer, format='png')
         img_buffer.seek(0)
-        img_reader = ImageReader(img_buffer)
-        iw, ih = img_reader.getSize()
-        aspect = ih / float(iw)
-        width = 3 * inch
-        height = width * aspect
-        img = Image(img_buffer, width=width, height=height)
+        img = Image(img_buffer, width=5*inch, height=3*inch)
         elements.append(img)
         elements.append(Spacer(1, 12))
         elements.append(Paragraph(caption, styles['Caption']))
         elements.append(Spacer(1, 12))
 
-    # Add figures and their captions
+    # Title Page
+    elements.append(Paragraph("Brain Analysis Report", styles['Title']))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Author: Your Name", styles['Normal']))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Institution: Your Institution", styles['Normal']))
+    elements.append(Spacer(1, 24))
+
+    # Abstract
+    elements.append(Paragraph("Abstract", styles['Heading1']))
+    abstract_text = ("This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). "
+                     "The GLM approach allows for flexible modeling of various types of response variables, including count data, "
+                     "binary data, and continuous positive values. In this analysis, we focus on a specific region of the brain and "
+                     "assess its activity over time using time-series data. The aim is to explore brain imaging data using advanced "
+                     "statistical techniques to identify patterns and significant changes in brain activity over time.")
+    elements.append(Paragraph(abstract_text, styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Introduction
+    elements.append(Paragraph("Introduction", styles['Heading1']))
+    intro_text = ("The introduction outlines the importance of the study, previous research, and the gaps that this research aims to fill. "
+                  "We utilized neuroimaging data to identify patterns and significant changes in brain activity over time. "
+                  "This section provides background information and the objectives of the study, highlighting the significance of analyzing "
+                  "brain imaging data to understand neurological conditions better.")
+    elements.append(Paragraph(intro_text, styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Methods
+    elements.append(Paragraph("Methods", styles['Heading1']))
+    methods_text = ("The methods section describes the approach taken in this research, including data collection and processing. "
+                    "We used NiBabel for reading and writing neuroimaging files, and Nilearn for processing and analyzing the data. "
+                    "Streamlit was employed to create an interactive web interface for analysis and visualization. "
+                    "This section provides detailed steps on how the data was handled, processed, and analyzed using various tools and libraries.")
+    elements.append(Paragraph(methods_text, styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Exploratory Data Analysis
+    elements.append(Paragraph("Exploratory Data Analysis", styles['Heading1']))
+    eda_text = ("Exploratory Data Analysis (EDA) is crucial for understanding the underlying patterns in the data. The following figures "
+                "illustrate the data distribution and intensity values across different brain regions. We present 2D slice views (axial, coronal, sagittal) "
+                "and a 3D brain plot to provide a comprehensive visual representation of the brain imaging data.")
+    elements.append(Paragraph(eda_text, styles['Normal']))
+    elements.append(Spacer(1, 12))
+
+    # Add Figures with Captions
     add_image(fig_scatter, elements, "Figure 1: Volume vs Intensity Scatter Plot", is_plotly=True)
     add_image(fig_pie, elements, "Figure 2: Volume Distribution by Region", is_plotly=True)
     add_image(fig_3d_brain, elements, "Figure 3: 3D Brain Plot", is_plotly=True)
@@ -234,74 +234,74 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     add_image(fig_coronal, elements, "Figure 5: Coronal Slice View")
     add_image(fig_sagittal, elements, "Figure 6: Sagittal Slice View")
 
-    # GLM Results Table
-    results_text = """The GLM analysis for the selected brain region revealed the following key results.
-    The deviance and Pearson chi-squared values indicate the goodness-of-fit of the model."""
-    results_paragraph = Paragraph(results_text, styles['Normal'])
-    elements.append(results_paragraph)
+    # Results
+    elements.append(Paragraph("Results", styles['Heading1']))
+    results_text = ("The GLM analysis for the selected brain region revealed the following key results. "
+                    "The deviance and Pearson chi-squared values indicate the goodness-of-fit of the model. "
+                    "The table below presents the coefficients, standard errors, z-values, and p-values for the model parameters.")
+    elements.append(Paragraph(results_text, styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # Convert GLM results to a table
-    coef_data = [["Coefficient", "Std Error", "z-value", "p-value"]] + coef_df.values.tolist()
-    coef_table = Table(coef_data)
-    coef_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
+    # Add GLM Results Table
+    coef_df_str = coef_df.to_string(index=False)
+    coef_table_data = [coef_df.columns.values.tolist()] + coef_df.values.tolist()
+    coef_table = Table(coef_table_data)
+    coef_table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                                    ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
     elements.append(coef_table)
     elements.append(Spacer(1, 12))
 
     # Discussion
-    discussion_text = """The discussion section provides an interpretation of the GLM results.
-    The analysis demonstrated the significance of the selected brain region and its activity over time.
-    The model's deviance and Pearson chi-squared values indicate a good fit, suggesting the robustness of the findings."""
-    discussion = Paragraph(discussion_text, styles['Normal'])
-    elements.append(discussion)
-    elements.append(Spacer(1, 12))
-
-    # Conclusion
-    conclusion_text = """In conclusion, the General Linear Model (GLM) offers a powerful framework for analyzing brain activity data.
-    This analysis highlighted significant findings in brain activity, contributing to our understanding of neurological conditions.
-    Future research may expand on these findings by exploring other brain regions and incorporating additional data types."""
-    conclusion = Paragraph(conclusion_text, styles['Normal'])
-    elements.append(conclusion)
+    elements.append(Paragraph("Discussion", styles['Heading1']))
+    discussion_text = ("The discussion section provides an interpretation of the GLM results. The analysis demonstrated the significance of the selected "
+                       "brain region and its activity over time. The model's deviance and Pearson chi-squared values indicate a good fit, suggesting the robustness "
+                       "of the findings. This section elaborates on the implications of the results, their relevance to the research objectives, and potential areas for "
+                       "future research.")
+    elements.append(Paragraph(discussion_text, styles['Normal']))
     elements.append(Spacer(1, 12))
 
     # Overview
-    overview_text = """This section provides a detailed overview of how the application was developed using various tools and libraries:
-    - **Nilearn**: Used for brain imaging data processing and analysis. It simplifies the use of scikit-learn in the context of neuroimaging.
-    - **NiBabel**: Provides read and write access to various neuroimaging file formats.
-    - **Streamlit**: Used to create the web application interface, making it easy to interact with the analysis.
-    - **Matplotlib and Plotly**: Used for generating visualizations that are essential for the exploratory data analysis and results presentation.
-
-    Steps to create the application:
-    1. Load the necessary libraries and datasets.
-    2. Develop functions for loading and processing NIfTI files using NiBabel.
-    3. Implement visualization functions using Matplotlib and Plotly.
-    4. Create interactive elements using Streamlit for user input and interaction.
-    5. Perform statistical analysis using Statsmodels and display the results.
-    6. Generate a detailed PDF report of the analysis using ReportLab."""
-    overview = Paragraph(overview_text, styles['Normal'])
-    elements.append(overview)
+    elements.append(Paragraph("Overview", styles['Heading1']))
+    overview_text = ("This section provides a detailed overview of how the application was developed using various tools and libraries:")
+    elements.append(Paragraph(overview_text, styles['Normal']))
     elements.append(Spacer(1, 12))
 
-    # Libraries
-    libraries_text = """Libraries used in this analysis:
-    - **Nilearn**: Simplifies scikit-learn in the context of neuroimaging.
-    - **NiBabel**: Provides read and write access to various neuroimaging file formats.
-    - **Streamlit**: Used to create an interactive web application interface.
-    - **Matplotlib and Plotly**: Used for generating visualizations.
-    - **Statsmodels**: Used for statistical analysis.
-    - **ReportLab**: Used for generating PDF reports."""
-    libraries = Paragraph(libraries_text, styles['Normal'])
-    elements.append(libraries)
+    steps = [
+        "1. Load the necessary libraries and datasets.",
+        "2. Develop functions for loading and processing NIfTI files using NiBabel.",
+        "3. Implement visualization functions using Matplotlib and Plotly.",
+        "4. Create interactive elements using Streamlit for user input and interaction.",
+        "5. Perform statistical analysis using Statsmodels and display the results.",
+        "6. Generate a detailed PDF report of the analysis using ReportLab."
+    ]
+    for step in steps:
+        elements.append(Paragraph(step, styles['Normal']))
+        elements.append(Spacer(1, 12))
+
+    # Libraries Used
+    elements.append(Paragraph("Libraries Used", styles['Heading1']))
+    libraries_text = ("The following libraries were used in this application:")
+    elements.append(Paragraph(libraries_text, styles['Normal']))
     elements.append(Spacer(1, 12))
 
+    libraries = [
+        "- **Nilearn**: Simplifies scikit-learn in the context of neuroimaging.",
+        "- **NiBabel**: Provides read and write access to various neuroimaging file formats.",
+        "- **Streamlit**: Used to create an interactive web application interface.",
+        "- **Matplotlib and Plotly**: Used for generating visualizations.",
+        "- **Statsmodels**: Used for statistical analysis.",
+        "- **ReportLab**: Used for generating PDF reports."
+    ]
+    for library in libraries:
+        elements.append(Paragraph(library, styles['Normal']))
+        elements.append(Spacer(1, 12))
+
+    # Build PDF
     doc.build(elements)
     buffer.seek(0)
     return buffer
