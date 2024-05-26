@@ -19,18 +19,15 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, Spacer, Table, TableStyle
 from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
 from reportlab.lib import colors
-from reportlab.lib import utils
 
 # Load an atlas for segmentation
 atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
 atlas_labels = atlas['labels']
 
-
 def load_nii_file(uploaded_file):
     file_holder = nib.FileHolder(fileobj=uploaded_file)
     nii = nib.Nifti1Image.from_file_map({'header': file_holder, 'image': file_holder})
     return nii
-
 
 def plot_slice(data, slice_number, axis=0):
     fig, ax = plt.subplots()
@@ -44,7 +41,6 @@ def plot_slice(data, slice_number, axis=0):
     ax.set_xlabel('X axis')
     ax.set_ylabel('Y axis')
     return fig
-
 
 def plot_highlighted_slice(data, slice_number, axis, labels_img, region_label):
     fig, ax = plt.subplots()
@@ -62,7 +58,6 @@ def plot_highlighted_slice(data, slice_number, axis, labels_img, region_label):
     ax.set_xlabel('X axis')
     ax.set_ylabel('Y axis')
     return fig
-
 
 def plot_3d_brain(data, labels_img):
     coords = np.array(np.nonzero(data > np.percentile(data, 95)))
@@ -101,17 +96,14 @@ def plot_3d_brain(data, labels_img):
     )
     return fig
 
-
 def skull_strip(nii_data):
     brain_mask = compute_brain_mask(nii_data)
     masked_img = nli.math_img("img1 * img2", img1=nii_data, img2=brain_mask)
     return masked_img
 
-
 def apply_segmentation(nii_data, atlas_data):
     labels_img = nli.resample_to_img(source_img=atlas_data.maps, target_img=nii_data, interpolation='nearest')
     return labels_img
-
 
 def calculate_region_statistics(data, labels_img):
     regions = np.unique(labels_img.get_fdata())
@@ -125,20 +117,17 @@ def calculate_region_statistics(data, labels_img):
         stats.append({'Region': atlas_labels[int(region)], 'Mean Intensity': mean_intensity, 'Volume': volume})
     return stats
 
-
 def individual_statistics(data, labels_img, region_label):
     region_data = data[labels_img.get_fdata() == region_label]
     mean_intensity = np.mean(region_data)
     volume = np.count_nonzero(region_data)
     return {'Region': atlas_labels[int(region_label)], 'Mean Intensity': mean_intensity, 'Volume': volume}
 
-
 def generate_charts(stats_df):
     fig_scatter = px.scatter(stats_df, x='Volume', y='Mean Intensity', color='Region',
                              title="Volume vs Intensity Scatter Plot")
     fig_pie = px.pie(stats_df, values='Volume', names='Region', title="Volume Distribution by Region")
     return fig_scatter, fig_pie
-
 
 def annotate_slice(data, slice_number, axis=0, annotations=[]):
     fig, ax = plt.subplots()
@@ -156,13 +145,11 @@ def annotate_slice(data, slice_number, axis=0, annotations=[]):
 
     return fig
 
-
 def plot_time_series(time_series, mean_intensity_over_time, region_label):
     fig = px.line(x=range(len(mean_intensity_over_time)), y=mean_intensity_over_time,
                   labels={'x': 'Time Point', 'y': 'Mean Intensity'},
                   title=f'Mean Intensity Over Time for {atlas_labels[int(region_label)]}')
     return fig
-
 
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
                         coef_df, results, selected_region):
@@ -355,23 +342,6 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     buffer.seek(0)
     return buffer
 
-
-def test_pdf():
-    buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=letter)
-    width, height = letter
-
-    c.setFont("Helvetica", 16)
-    c.drawString(72, height - 72, "Test PDF Report")
-
-    c.setFont("Helvetica", 12)
-    c.drawString(72, height - 96, "This is a test report to check PDF generation.")
-
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-
 # Initialize session state for annotations
 if 'annotations' not in st.session_state:
     st.session_state.annotations = []
@@ -551,28 +521,15 @@ if uploaded_file:
                     # Button to trigger PDF generation
                     if st.button("Generate PDF Report"):
                         st.session_state.generate_pdf = True
-                    
-                    fig_axial = data.shape[axis_map[2]] // 2
-                    fig_coronal = data.shape[axis_map[1]] // 2
-                    fig_sagittal = data.shape[axis_map[0]] // 2
-                    fig_3d_brain = fig_3d
+
                     # Check if the PDF should be generated
                     if 'generate_pdf' in st.session_state and st.session_state.generate_pdf:
+                        fig_axial = plot_slice(data, data.shape[0] // 2, 0)
+                        fig_coronal = plot_slice(data, data.shape[1] // 2, 1)
+                        fig_sagittal = plot_slice(data, data.shape[2] // 2, 2)
                         with st.spinner("Generating PDF report..."):
-                            pdf_output = pdf_output = generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
-                                                                          coef_df, results, selected_region)
+                            pdf_output = generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d, fig_axial, fig_coronal, fig_sagittal,
+                                                             coef_df, results, selected_region)
                             st.download_button(label="Download Report", data=pdf_output,
                                                file_name="Brain_Analysis_Report.pdf", mime="application/pdf")
                             st.session_state.generate_pdf = False
-
-                    # Button to trigger test PDF generation
-                    if st.button("Generate Test PDF"):
-                        st.session_state.generate_test_pdf = True
-
-                    # Check if the test PDF should be generated
-                    if 'generate_test_pdf' in st.session_state and st.session_state.generate_test_pdf:
-                        with st.spinner("Generating Test PDF report..."):
-                            test_pdf_output = test_pdf()
-                            st.download_button(label="Download Test Report", data=test_pdf_output,
-                                               file_name="Test_Report.pdf", mime="application/pdf")
-                            st.session_state.generate_test_pdf = False
