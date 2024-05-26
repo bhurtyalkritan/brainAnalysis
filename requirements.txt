@@ -6,3 +6,7 @@ plotly
 nilearn
 pandas
 statsmodels
+tempfile
+fpdf
+io
+json
