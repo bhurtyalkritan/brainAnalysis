@@ -179,7 +179,7 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
             for word in line.split():
                 if text_object.getX() + c.stringWidth(word + " ", "Times-Roman", 12) > max_width:
                     text_object.moveCursor(0, 14)
-                    text_object.setX(x)
+                    text_object.setTextOrigin(x, text_object.getY())
                 text_object.textOut(word + " ")
             c.drawText(text_object)
             y -= 14
