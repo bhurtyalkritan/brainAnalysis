@@ -162,7 +162,7 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
 
 
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
-                        coef_df, results, selected_region):
+                        coef_df, results, selected_region, t_test):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
     styles = getSampleStyleSheet()
@@ -256,6 +256,44 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     elements.append(coef_table)
     elements.append(Spacer(1, 12))
 
+    # Conditional Interpretation of Results
+    def interpret_results(results, t_test):
+        interpretation = []
+
+        # Check if the t-test for the intercept is significant
+        if t_test.tvalue[0] > 1.96 or t_test.tvalue[0] < -1.96:
+            interpretation.append("The t-test for the intercept is statistically significant at the 0.05 level, indicating that there is a significant relationship between the intercept and the brain activity in the selected region.")
+        else:
+            interpretation.append("The t-test for the intercept is not statistically significant at the 0.05 level, suggesting that the relationship between the intercept and the brain activity in the selected region is not significant.")
+
+        # Interpret each coefficient
+        for i, coef in enumerate(results.params):
+            coef_name = results.params.index[i]
+            coef_value = coef
+            p_value = results.pvalues[i]
+            t_value = results.tvalues[i]
+
+            if p_value < 0.05:
+                significance = "statistically significant"
+            else:
+                significance = "not statistically significant"
+
+            interpretation.append(f"The coefficient for {coef_name} is {coef_value:.4f} with a t-value of {t_value:.2f} and a p-value of {p_value:.4f}, indicating that it is {significance}.")
+
+        # Additional interpretations based on model fit
+        deviance = results.deviance
+        pearson_chi2 = results.pearson_chi2
+
+        interpretation.append(f"The model's deviance is {deviance:.4f}, which indicates the goodness-of-fit of the model.")
+        interpretation.append(f"The Pearson chi-squared value is {pearson_chi2:.4f}, providing a measure of goodness-of-fit.")
+
+        return interpretation
+
+    interpretation = interpret_results(results, t_test)
+    for line in interpretation:
+        elements.append(Paragraph(line, styles['Normal']))
+        elements.append(Spacer(1, 12))
+
     # Discussion
     elements.append(Paragraph("Discussion", styles['Heading1']))
     discussion_text = ("The discussion section provides an interpretation of the GLM results. The analysis demonstrated the significance of the selected "
@@ -279,9 +317,8 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         "5. Perform statistical analysis using Statsmodels and display the results.",
         "6. Generate a detailed PDF report of the analysis using ReportLab."
     ]
-    for step in steps:
-        elements.append(Paragraph(step, styles['Normal']))
-        elements.append(Spacer(1, 12))
+    elements.append(ListFlowable([ListItem(Paragraph(step, styles['Normal'])) for step in steps], bulletType='1'))
+    elements.append(Spacer(1, 12))
 
     # Libraries Used
     elements.append(Paragraph("Libraries Used", styles['Heading1']))
@@ -297,9 +334,8 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         "- **Statsmodels**: Used for statistical analysis.",
         "- **ReportLab**: Used for generating PDF reports."
     ]
-    for library in libraries:
-        elements.append(Paragraph(library, styles['Normal']))
-        elements.append(Spacer(1, 12))
+    elements.append(ListFlowable([ListItem(Paragraph(library, styles['Normal'])) for library in libraries], bulletType='bullet'))
+    elements.append(Spacer(1, 12))
 
     # Build PDF
     doc.build(elements)
