@@ -551,12 +551,16 @@ if uploaded_file:
                     # Button to trigger PDF generation
                     if st.button("Generate PDF Report"):
                         st.session_state.generate_pdf = True
-
+                    
+                    fig_axial = data.shape[axis_map[2]] // 2
+                    fig_coronal = data.shape[axis_map[1]] // 2
+                    fig_sagittal = data.shape[axis_map[0]] // 2
+                    fig_3d_brain = fig_3d
                     # Check if the PDF should be generated
                     if 'generate_pdf' in st.session_state and st.session_state.generate_pdf:
                         with st.spinner("Generating PDF report..."):
-                            pdf_output = generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
-                                                             selected_region)
+                            pdf_output = pdf_output = generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
+                                                                          coef_df, results, selected_region)
                             st.download_button(label="Download Report", data=pdf_output,
                                                file_name="Brain_Analysis_Report.pdf", mime="application/pdf")
                             st.session_state.generate_pdf = False
