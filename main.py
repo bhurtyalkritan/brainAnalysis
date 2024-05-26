@@ -297,8 +297,8 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     c.drawString(72, y, "4. Results")
     y -= 14
     results_text = f"""The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:
-    - R-squared: {results.prsquared:.4f}, indicating the predictive power of the model.
-    - F-statistic: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.
+    - Deviance: {results.deviance:.4f}, indicating the model fit.
+    - Pearson Chi-Squared: {results.pearson_chi2:.4f}, providing a measure of goodness-of-fit.
     - Coefficients:"""
     y = draw_paragraph(c, results_text, 72, y, width - 144)
 
@@ -326,9 +326,8 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     c.drawString(72, y, "6. Conclusion")
     y -= 14
     conclusion_text = """In conclusion, the General Linear Model (GLM) provides a powerful framework for analyzing brain activity data. 
-    This analysis demonstrated the significance of the selected brain region and its activity over time. The model's high R-squared value 
-    indicates a strong relationship between the predictors and the response variable. The findings from this study can aid in understanding 
-    brain function and potentially contribute to diagnosing and monitoring neurological conditions."""
+    This analysis demonstrated the significance of the selected brain region and its activity over time. The model's deviance and Pearson chi-squared 
+    indicate a good fit. The findings from this study can aid in understanding brain function and potentially contribute to diagnosing and monitoring neurological conditions."""
     y = draw_paragraph(c, conclusion_text, 72, y, width - 144)
 
     c.showPage()
@@ -354,7 +353,6 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     c.save()
     buffer.seek(0)
     return buffer
-
 
 def test_pdf():
     buffer = io.BytesIO()
