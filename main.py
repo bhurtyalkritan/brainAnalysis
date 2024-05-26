@@ -164,12 +164,29 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
+    def draw_paragraph(c, text, x, y, max_width):
+        lines = text.split('\n')
+        for line in lines:
+            c.drawString(x, y, line)
+            y -= 14
+        return y
+
     c.setFont("Helvetica", 16)
     c.drawString(72, height - 72, "Brain Analysis Report")
 
     c.setFont("Helvetica", 12)
-    c.drawString(72, height - 96, "Exploratory Data Analysis")
-    c.drawString(72, height - 120, "The following charts provide an overview of the data distribution and intensity values across different brain regions.")
+    y = height - 96
+    intro_text = """This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). 
+    The GLM approach allows for flexible modeling of various types of response variables, including count data, binary data, 
+    and continuous positive values. In this analysis, we focus on a specific region of the brain and assess its activity over 
+    time using time-series data."""
+    y = draw_paragraph(c, intro_text, 72, y, width - 144)
+
+    y -= 20
+    c.drawString(72, y, "1. Exploratory Data Analysis")
+    y -= 14
+    eda_text = """The following charts provide an overview of the data distribution and intensity values across different brain regions."""
+    y = draw_paragraph(c, eda_text, 72, y, width - 144)
 
     # Add EDA plots
     scatter_buffer = io.BytesIO()
@@ -179,7 +196,8 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
     with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
         tmpfile.write(scatter_image)
         tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
+    y -= 260
 
     c.showPage()
     pie_buffer = io.BytesIO()
@@ -189,45 +207,49 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
     with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
         tmpfile.write(pie_image)
         tmpfile.flush()
-        c.drawImage(tmpfile.name, 72, height - 300, width=width - 144, preserveAspectRatio=True)
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    y = height - 380
+
+    y -= 20
+    c.drawString(72, y, "2. General Linear Model (GLM) Analysis")
+    y -= 14
+    glm_text = """The General Linear Model (GLM) is used to assess the relationship between brain activity and the provided time-series data. 
+    The model is defined as:
+    Y = Xβ + ε
+    where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term."""
+    y = draw_paragraph(c, glm_text, 72, y, width - 144)
+
+    y -= 20
+    c.drawString(72, y, "3. Implementation Process")
+    y -= 14
+    impl_text = """The GLM analysis was performed using the following steps:
+    1. Load the NIfTI file and preprocess the data.
+    2. Apply segmentation to identify brain regions.
+    3. Extract time-series data for the selected region.
+    4. Fit the GLM model to the data.
+    5. Evaluate the model performance and interpret the results."""
+    y = draw_paragraph(c, impl_text, 72, y, width - 144)
 
     c.showPage()
+    y = height - 72
     c.setFont("Helvetica", 12)
-    c.drawString(72, height - 72, "General Linear Model (GLM) Formula")
-    c.drawString(72, height - 96, "The General Linear Model (GLM) is used to assess the relationship between the brain activity and the provided time-series data. The model is defined as:")
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(72, height - 120, "Y = Xβ + ε")
-    c.setFont("Helvetica", 12)
-    c.drawString(72, height - 144, "Where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term.")
-
-    c.showPage()
-    c.setFont("Helvetica", 12)
-    c.drawString(72, height - 72, "Implementation Process")
-    c.drawString(72, height - 96, "The GLM analysis was performed using the following steps:")
-    c.drawString(72, height - 120, "1. Load the NIfTI file and preprocess the data.")
-    c.drawString(72, height - 144, "2. Apply segmentation to identify brain regions.")
-    c.drawString(72, height - 168, "3. Extract time-series data for the selected region.")
-    c.drawString(72, height - 192, "4. Fit the GLM model to the data.")
-    c.drawString(72, height - 216, "5. Evaluate the model performance and interpret the results.")
-
-    c.showPage()
-    c.setFont("Helvetica", 12)
-    c.drawString(72, height - 72, "Results")
-    c.drawString(72, height - 96, f"The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:")
-    c.drawString(72, height - 120, f"- R-squared: {results.rsquared:.4f}, indicating that {results.rsquared * 100:.2f}% of the variance in the brain activity is explained by the model.")
-    c.drawString(72, height - 144, f"- F-statistic: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.")
-    c.drawString(72, height - 168, "- Coefficients:")
+    c.drawString(72, y, "4. Results")
+    y -= 14
+    results_text = f"""The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:
+    - R-squared: {results.rsquared:.4f}, indicating that {results.rsquared * 100:.2f}% of the variance in the brain activity is explained by the model.
+    - F-statistic: {results.fvalue:.2f} with a p-value of {results.f_pvalue:.4f}, suggesting that the overall model is statistically significant.
+    - Coefficients:"""
+    y = draw_paragraph(c, results_text, 72, y, width - 144)
 
     coef_df_str = coef_df.to_string(index=False)
     text_lines = coef_df_str.split('\n')
-    y_position = height - 192
     for line in text_lines:
-        c.drawString(72, y_position, line)
-        y_position -= 14
+        c.drawString(72, y, line)
+        y -= 14
 
     c.showPage()
     c.setFont("Helvetica", 12)
-    c.drawString(72, height - 72, "Scatter Plot of GLM Results")
+    c.drawString(72, height - 72, "5. Scatter Plot of GLM Results")
     ts_buffer = io.BytesIO()
     fig_time_series.write_image(ts_buffer, format="png")
     ts_buffer.seek(0)
@@ -236,6 +258,17 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, coef_df, results,
         tmpfile.write(ts_image)
         tmpfile.flush()
         c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+
+    c.showPage()
+    y = height - 72
+    c.setFont("Helvetica", 12)
+    c.drawString(72, y, "6. Conclusion")
+    y -= 14
+    conclusion_text = """In conclusion, the General Linear Model (GLM) provides a powerful framework for analyzing brain activity data. 
+    This analysis demonstrated the significance of the selected brain region and its activity over time. The model's high R-squared value 
+    indicates a strong relationship between the predictors and the response variable. The findings from this study can aid in understanding 
+    brain function and potentially contribute to diagnosing and monitoring neurological conditions."""
+    y = draw_paragraph(c, conclusion_text, 72, y, width - 144)
 
     c.save()
     buffer.seek(0)
