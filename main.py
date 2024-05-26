@@ -12,16 +12,12 @@ import statsmodels.api as sm
 import io
 import json
 import tempfile
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
 from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
-from reportlab.platypus.frames import Frame
-from reportlab.platypus.tables import Table, TableStyle
-from reportlab.platypus import BaseDocTemplate, Frame, PageTemplate
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib import utils
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.utils import ImageReader
 # Load an atlas for segmentation
 atlas = datasets.fetch_atlas_harvard_oxford('cort-maxprob-thr50-1mm')
 atlas_labels = atlas['labels']
@@ -168,99 +164,46 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
                         coef_df, results, selected_region):
     buffer = io.BytesIO()
-    doc = BaseDocTemplate(buffer, pagesize=letter)
-    width, height = letter
-
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY))
-
-    frame1 = Frame(doc.leftMargin, doc.bottomMargin, (width / 2) - doc.leftMargin, height - 2 * inch, id='leftCol')
-    frame2 = Frame(doc.leftMargin + (width / 2), doc.bottomMargin, (width / 2) - doc.leftMargin, height - 2 * inch, id='rightCol')
-    doc.addPageTemplates([PageTemplate(id='TwoCol', frames=[frame1, frame2])])
-
     elements = []
 
-    # Title Page
-    elements.append(Paragraph("Brain Analysis Report", styles['Title']))
+    # Title
+    title = Paragraph("Brain Analysis Report", styles['Title'])
+    elements.append(title)
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph("Author: Your Name", styles['Normal']))
-    elements.append(Paragraph("Institutional Affiliation: Your Institution", styles['Normal']))
-    elements.append(Spacer(1, 24))
 
     # Abstract
-    elements.append(Paragraph("Abstract", styles['Heading1']))
-    abstract_text = """
-    This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). 
-    The GLM approach allows for flexible modeling of various types of response variables, including count data, 
-    binary data, and continuous positive values. In this analysis, we focus on a specific region of the brain and 
-    assess its activity over time using time-series data. The methods used in this study are robust and comprehensive, 
-    ensuring accurate and reliable results. This report summarizes the key findings and their implications for understanding 
-    brain function and diagnosing neurological conditions.
-    """
-    elements.append(Paragraph(abstract_text, styles['Justify']))
+    abstract_text = """This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM).
+    The GLM approach allows for flexible modeling of various types of response variables, including count data, binary data,
+    and continuous positive values. In this analysis, we focus on a specific region of the brain and assess its activity over
+    time using time-series data."""
+    abstract = Paragraph(abstract_text, styles['Normal'])
+    elements.append(abstract)
     elements.append(Spacer(1, 12))
 
     # Introduction
-    elements.append(Paragraph("Introduction", styles['Heading1']))
-    intro_text = """
-    The introduction section provides an overview of the research topic and its significance. This study investigates the 
-    relationship between brain activity and various predictors using advanced neuroimaging techniques. Previous research has 
-    shown that brain activity can be influenced by numerous factors, including genetics, environment, and lifestyle. However, 
-    there are still many unresolved questions regarding the precise mechanisms underlying these effects. This study aims to 
-    address these gaps in knowledge by utilizing state-of-the-art analytical methods and comprehensive datasets.
-    """
-    elements.append(Paragraph(intro_text, styles['Justify']))
+    intro_text = """The aim of this study is to explore brain imaging data using advanced statistical techniques.
+    The introduction outlines the importance of the study, previous research, and the gaps that this research aims to fill.
+    We utilized neuroimaging data to identify patterns and significant changes in brain activity over time."""
+    introduction = Paragraph(intro_text, styles['Normal'])
+    elements.append(introduction)
     elements.append(Spacer(1, 12))
 
     # Methods
-    elements.append(Paragraph("Methods", styles['Heading1']))
-    methods_text = """
-    The Methods section details the procedures and techniques used in this study. Participants were selected based on specific 
-    inclusion criteria to ensure a representative sample. Neuroimaging data were collected using high-resolution MRI scanners, 
-    and preprocessed using standardized protocols. Advanced statistical techniques, including the Generalized Linear Model (GLM), 
-    were employed to analyze the data. The study design was carefully crafted to minimize bias and maximize the reliability of 
-    the findings. Each step of the process was meticulously documented to allow for reproducibility and verification by other 
-    researchers.
-    """
-    elements.append(Paragraph(methods_text, styles['Justify']))
-    elements.append(Spacer(1, 12))
-
-    # Results
-    elements.append(Paragraph("Results", styles['Heading1']))
-    results_text = f"""
-    The Results section presents the key findings of the study. The GLM analysis for the selected region '{selected_region[1]}' 
-    revealed several important insights. The deviance was {results.deviance:.4f}, indicating a good fit for the model. The Pearson 
-    Chi-Squared value was {results.pearson_chi2:.4f}, suggesting that the model adequately captures the observed data. The coefficients 
-    for the predictors provide valuable information about the direction and magnitude of their effects. These results underscore the 
-    complexity of brain activity and the multifaceted nature of its determinants.
-    """
-    elements.append(Paragraph(results_text, styles['Justify']))
-    elements.append(Spacer(1, 12))
-
-    coef_df_str = coef_df.to_string(index=False)
-    elements.append(Paragraph(coef_df_str.replace('\n', '<br />'), styles['Code']))
-    elements.append(Spacer(1, 12))
-
-    # Discussion
-    elements.append(Paragraph("Discussion", styles['Heading1']))
-    discussion_text = """
-    The Discussion section interprets the results and their implications. The findings from this study provide new insights into the 
-    factors influencing brain activity. The significant coefficients indicate strong relationships between the predictors and brain 
-    activity, suggesting potential avenues for further research. These results highlight the importance of considering multiple factors 
-    when studying brain function. The study also underscores the potential of neuroimaging techniques for advancing our understanding 
-    of the brain. Limitations of the study and directions for future research are also discussed.
-    """
-    elements.append(Paragraph(discussion_text, styles['Justify']))
+    methods_text = """The methods section describes the approach taken in this research, including data collection and processing.
+    We used NiBabel for reading and writing neuroimaging files, and Nilearn for processing and analyzing the data.
+    Streamlit was employed to create an interactive web interface for analysis and visualization."""
+    methods = Paragraph(methods_text, styles['Normal'])
+    elements.append(methods)
     elements.append(Spacer(1, 12))
 
     # Exploratory Data Analysis
-    elements.append(Paragraph("Exploratory Data Analysis", styles['Heading1']))
-    eda_text = """
-    The Exploratory Data Analysis (EDA) section provides an overview of the data distribution and intensity values across different brain regions. 
-    EDA is essential in understanding the underlying patterns and relationships in the data, which helps in formulating hypotheses and guiding 
-    further analysis. This section includes various figures that visualize the data, making it easier to identify trends and anomalies.
-    """
-    elements.append(Paragraph(eda_text, styles['Justify']))
+    eda_text = """Exploratory Data Analysis (EDA) is crucial for understanding the underlying patterns in the data.
+    The following figures illustrate the data distribution and intensity values across different brain regions.
+    We present 2D slice views (axial, coronal, sagittal) and a 3D brain plot to provide a comprehensive visual representation."""
+    eda = Paragraph(eda_text, styles['Normal'])
+    elements.append(eda)
     elements.append(Spacer(1, 12))
 
     # Function to add image to the PDF
@@ -268,10 +211,14 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         img_buffer = io.BytesIO()
         fig.savefig(img_buffer, format='png')
         img_buffer.seek(0)
-        img_reader = utils.ImageReader(img_buffer)
+        img_reader = ImageReader(img_buffer)
         iw, ih = img_reader.getSize()
         aspect = ih / float(iw)
-        elements.append(Image(img_buffer, width=2.75 * inch, height=(2.75 * inch) * aspect))
+        width = 6 * inch
+        height = width * aspect
+        img = Image(img_buffer, width=width, height=height)
+        elements.append(img)
+        elements.append(Spacer(1, 12))
         elements.append(Paragraph(caption, styles['Caption']))
         elements.append(Spacer(1, 12))
 
@@ -283,10 +230,46 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     add_image(fig_coronal, elements, "Figure 5: Coronal Slice View")
     add_image(fig_sagittal, elements, "Figure 6: Sagittal Slice View")
 
+    # GLM Results Table
+    results_text = """The GLM analysis for the selected brain region revealed the following key results.
+    The deviance and Pearson chi-squared values indicate the goodness-of-fit of the model."""
+    results_paragraph = Paragraph(results_text, styles['Normal'])
+    elements.append(results_paragraph)
+    elements.append(Spacer(1, 12))
+
+    # Convert GLM results to a table
+    coef_data = [["Coefficient", "Std Error", "z-value", "p-value"]] + coef_df.values.tolist()
+    coef_table = Table(coef_data)
+    coef_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ]))
+    elements.append(coef_table)
+    elements.append(Spacer(1, 12))
+
+    # Discussion
+    discussion_text = """The discussion section provides an interpretation of the GLM results.
+    The analysis demonstrated the significance of the selected brain region and its activity over time.
+    The model's deviance and Pearson chi-squared values indicate a good fit, suggesting the robustness of the findings."""
+    discussion = Paragraph(discussion_text, styles['Normal'])
+    elements.append(discussion)
+    elements.append(Spacer(1, 12))
+
+    # Conclusion
+    conclusion_text = """In conclusion, the General Linear Model (GLM) offers a powerful framework for analyzing brain activity data.
+    This analysis highlighted significant findings in brain activity, contributing to our understanding of neurological conditions.
+    Future research may expand on these findings by exploring other brain regions and incorporating additional data types."""
+    conclusion = Paragraph(conclusion_text, styles['Normal'])
+    elements.append(conclusion)
+    elements.append(Spacer(1, 12))
+
     # Overview
-    elements.append(Paragraph("Overview", styles['Heading1']))
-    overview_text = """
-    This section provides a detailed overview of how the application was developed using various tools and libraries:
+    overview_text = """This section provides a detailed overview of how the application was developed using various tools and libraries:
     - **Nilearn**: Used for brain imaging data processing and analysis. It simplifies the use of scikit-learn in the context of neuroimaging.
     - **NiBabel**: Provides read and write access to various neuroimaging file formats.
     - **Streamlit**: Used to create the web application interface, making it easy to interact with the analysis.
@@ -298,28 +281,21 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     3. Implement visualization functions using Matplotlib and Plotly.
     4. Create interactive elements using Streamlit for user input and interaction.
     5. Perform statistical analysis using Statsmodels and display the results.
-    6. Generate a detailed PDF report of the analysis using ReportLab.
-    """
-    elements.append(Paragraph(overview_text, styles['Justify']))
+    6. Generate a detailed PDF report of the analysis using ReportLab."""
+    overview = Paragraph(overview_text, styles['Normal'])
+    elements.append(overview)
     elements.append(Spacer(1, 12))
 
-    # Brief Explanation of Each Library Used
-    elements.append(Paragraph("Brief Explanation of Each Library Used", styles['Heading1']))
-    libraries_text = """
-    - **Nilearn**: A Python module for fast and easy statistical learning analysis on neuroimaging data. It leverages the scikit-learn library and 
-      provides high-level abstractions for complex neuroimaging workflows.
-    - **NiBabel**: A Python package that provides read and write access to various neuroimaging file formats, including NIfTI and Analyze.
-    - **Streamlit**: An open-source app framework for Machine Learning and Data Science teams. It allows the creation of web applications for 
-      data analysis with minimal effort.
-    - **Matplotlib**: A plotting library for the Python programming language and its numerical mathematics extension NumPy. It provides an object-oriented 
-      API for embedding plots into applications.
-    - **Plotly**: A graphing library that makes interactive, publication-quality graphs online. It supports various types of plots and is particularly 
-      useful for data visualization in Python.
-    - **Statsmodels**: A Python module that provides classes and functions for the estimation of many different statistical models, as well as for conducting 
-      statistical tests and statistical data exploration.
-    - **ReportLab**: A software library that lets you directly create documents in Adobe's Portable Document Format (PDF) using the Python programming language.
-    """
-    elements.append(Paragraph(libraries_text, styles['Justify']))
+    # Libraries
+    libraries_text = """Libraries used in this analysis:
+    - **Nilearn**: Simplifies scikit-learn in the context of neuroimaging.
+    - **NiBabel**: Provides read and write access to various neuroimaging file formats.
+    - **Streamlit**: Used to create an interactive web application interface.
+    - **Matplotlib and Plotly**: Used for generating visualizations.
+    - **Statsmodels**: Used for statistical analysis.
+    - **ReportLab**: Used for generating PDF reports."""
+    libraries = Paragraph(libraries_text, styles['Normal'])
+    elements.append(libraries)
     elements.append(Spacer(1, 12))
 
     doc.build(elements)
