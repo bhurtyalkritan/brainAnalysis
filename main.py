@@ -167,108 +167,174 @@ def plot_time_series(time_series, mean_intensity_over_time, region_label):
 def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig_axial, fig_coronal, fig_sagittal,
                         coef_df, results, selected_region):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter,
-                            rightMargin=72, leftMargin=72,
-                            topMargin=72, bottomMargin=18)
-    styles = getSampleStyleSheet()
-    story = []
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
 
-    def add_image(fig, width=400, height=300):
-        img_buffer = io.BytesIO()
-        fig.savefig(img_buffer, format='png')
-        img_buffer.seek(0)
-        img = Image(img_buffer, width=width, height=height)
-        return img
+    def draw_paragraph(c, text, x, y, max_width):
+        lines = text.split('\n')
+        for line in lines:
+            text_object = c.beginText(x, y)
+            text_object.setFont("Times-Roman", 12)
+            text_object.setTextOrigin(x, y)
+            for word in line.split():
+                if text_object.getX() + c.stringWidth(word + " ", "Times-Roman", 12) > max_width:
+                    text_object.moveCursor(0, 14)
+                    text_object.setTextOrigin(x, text_object.getY())
+                text_object.textOut(word + " ")
+            c.drawText(text_object)
+            y -= 14
+        return y
 
-    # Title
-    story.append(Paragraph("Brain Analysis Report", styles['Title']))
-    story.append(Spacer(1, 12))
+    c.setFont("Times-Bold", 16)
+    c.drawString(72, height - 72, "Brain Analysis Report")
 
-    # Introduction
+    c.setFont("Times-Roman", 12)
+    y = height - 96
     intro_text = """This report provides an in-depth analysis of brain imaging data using a Generalized Linear Model (GLM). 
     The GLM approach allows for flexible modeling of various types of response variables, including count data, binary data, 
     and continuous positive values. In this analysis, we focus on a specific region of the brain and assess its activity over 
     time using time-series data."""
-    story.append(Paragraph(intro_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, intro_text, 72, y, width - 144)
 
-    # Exploratory Data Analysis
-    story.append(Paragraph("1. Exploratory Data Analysis", styles['Heading2']))
+    y -= 20
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "1. Exploratory Data Analysis")
+    y -= 14
     eda_text = """The following charts provide an overview of the data distribution and intensity values across different brain regions. 
     Additionally, 2D slice views (axial, coronal, sagittal) and a 3D brain plot are included to give a visual representation of the brain."""
-    story.append(Paragraph(eda_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, eda_text, 72, y, width - 144)
 
-    story.append(add_image(fig_scatter))
-    story.append(Spacer(1, 12))
-    story.append(add_image(fig_pie))
-    story.append(Spacer(1, 12))
-    story.append(add_image(fig_axial))
-    story.append(Spacer(1, 12))
-    story.append(add_image(fig_coronal))
-    story.append(Spacer(1, 12))
-    story.append(add_image(fig_sagittal))
-    story.append(Spacer(1, 12))
-    story.append(add_image(fig_3d_brain))
-    story.append(Spacer(1, 12))
+    scatter_buffer = io.BytesIO()
+    fig_scatter.write_image(scatter_buffer, format="png")
+    scatter_buffer.seek(0)
+    scatter_image = scatter_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(scatter_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
+    y -= 260
 
-    # General Linear Model Analysis
-    story.append(Paragraph("2. General Linear Model (GLM) Analysis", styles['Heading2']))
+    c.showPage()
+    pie_buffer = io.BytesIO()
+    fig_pie.write_image(pie_buffer, format="png")
+    pie_buffer.seek(0)
+    pie_image = pie_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(pie_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    y = height - 380
+
+    y -= 20
+    axial_buffer = io.BytesIO()
+    fig_axial.savefig(axial_buffer, format="png")
+    axial_buffer.seek(0)
+    axial_image = axial_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(axial_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
+    y -= 260
+
+    c.showPage()
+    coronal_buffer = io.BytesIO()
+    fig_coronal.savefig(coronal_buffer, format="png")
+    coronal_buffer.seek(0)
+    coronal_image = coronal_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(coronal_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    y = height - 380
+
+    y -= 20
+    sagittal_buffer = io.BytesIO()
+    fig_sagittal.savefig(sagittal_buffer, format="png")
+    sagittal_buffer.seek(0)
+    sagittal_image = sagittal_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(sagittal_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, y - 240, width=width - 144, preserveAspectRatio=True)
+    y -= 260
+
+    c.showPage()
+    brain_3d_buffer = io.BytesIO()
+    fig_3d_brain.write_image(brain_3d_buffer, format="png")
+    brain_3d_buffer.seek(0)
+    brain_3d_image = brain_3d_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(brain_3d_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
+    y = height - 380
+
+    y -= 20
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "2. General Linear Model (GLM) Analysis")
+    y -= 14
     glm_text = """The General Linear Model (GLM) is used to assess the relationship between brain activity and the provided time-series data. 
     The model is defined as:
     Y = Xβ + ε
     where Y is the dependent variable (brain activity), X is the independent variable (time-series data), β is the coefficient, and ε is the error term."""
-    story.append(Paragraph(glm_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, glm_text, 72, y, width - 144)
 
-    # Implementation Process
-    story.append(Paragraph("3. Implementation Process", styles['Heading2']))
+    y -= 20
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "3. Implementation Process")
+    y -= 14
     impl_text = """The GLM analysis was performed using the following steps:
     1. Load the NIfTI file and preprocess the data.
     2. Apply segmentation to identify brain regions.
     3. Extract time-series data for the selected region.
     4. Fit the GLM model to the data.
     5. Evaluate the model performance and interpret the results."""
-    story.append(Paragraph(impl_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, impl_text, 72, y, width - 144)
 
-    # Results
-    story.append(Paragraph("4. Results", styles['Heading2']))
+    c.showPage()
+    y = height - 72
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "4. Results")
+    y -= 14
     results_text = f"""The GLM analysis for the selected region '{selected_region[1]}' revealed the following key results:
     - Deviance: {results.deviance:.4f}, indicating the model fit.
     - Pearson Chi-Squared: {results.pearson_chi2:.4f}, providing a measure of goodness-of-fit.
     - Coefficients:"""
-    story.append(Paragraph(results_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, results_text, 72, y, width - 144)
 
     coef_df_str = coef_df.to_string(index=False)
-    coef_data = [[Paragraph(cell, styles['BodyText']) for cell in row.split()] for row in coef_df_str.split('\n')]
-    coef_table = Table(coef_data, colWidths=[80, 80, 80, 80])
-    coef_table.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                                    ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
-    story.append(coef_table)
-    story.append(Spacer(1, 12))
+    text_lines = coef_df_str.split('\n')
+    for line in text_lines:
+        c.drawString(72, y, line)
+        y -= 14
 
-    # Scatter Plot of GLM Results
-    story.append(Paragraph("5. Scatter Plot of GLM Results", styles['Heading2']))
-    story.append(add_image(fig_time_series))
-    story.append(Spacer(1, 12))
+    c.showPage()
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, height - 72, "5. Scatter Plot of GLM Results")
+    ts_buffer = io.BytesIO()
+    fig_time_series.write_image(ts_buffer, format="png")
+    ts_buffer.seek(0)
+    ts_image = ts_buffer.read()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        tmpfile.write(ts_image)
+        tmpfile.flush()
+        c.drawImage(tmpfile.name, 72, height - 360, width=width - 144, preserveAspectRatio=True)
 
-    # Conclusion
-    story.append(Paragraph("6. Conclusion", styles['Heading2']))
+    c.showPage()
+    y = height - 72
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "6. Conclusion")
+    y -= 14
     conclusion_text = """In conclusion, the General Linear Model (GLM) provides a powerful framework for analyzing brain activity data. 
     This analysis demonstrated the significance of the selected brain region and its activity over time. The model's deviance and Pearson chi-squared 
     indicate a good fit. The findings from this study can aid in understanding brain function and potentially contribute to diagnosing and monitoring neurological conditions."""
-    story.append(Paragraph(conclusion_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, conclusion_text, 72, y, width - 144)
 
-    # Application and Tool Development
-    story.append(Paragraph("7. Application and Tool Development", styles['Heading2']))
+    c.showPage()
+    y = height - 72
+    c.setFont("Times-Bold", 14)
+    c.drawString(72, y, "7. Application and Tool Development")
+    y -= 14
     application_text = """This section provides a detailed overview of how the application was developed using various tools and libraries:
     - **Nilearn**: Used for brain imaging data processing and analysis. It simplifies the use of scikit-learn in the context of neuroimaging.
     - **NiBabel**: Provides read and write access to various neuroimaging file formats.
@@ -282,10 +348,24 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     4. Create interactive elements using Streamlit for user input and interaction.
     5. Perform statistical analysis using Statsmodels and display the results.
     6. Generate a detailed PDF report of the analysis using ReportLab."""
-    story.append(Paragraph(application_text, styles['BodyText']))
-    story.append(Spacer(1, 12))
+    y = draw_paragraph(c, application_text, 72, y, width - 144)
 
-    doc.build(story)
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+def test_pdf():
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    c.setFont("Helvetica", 16)
+    c.drawString(72, height - 72, "Test PDF Report")
+
+    c.setFont("Helvetica", 12)
+    c.drawString(72, height - 96, "This is a test report to check PDF generation.")
+
+    c.save()
     buffer.seek(0)
     return buffer
 
