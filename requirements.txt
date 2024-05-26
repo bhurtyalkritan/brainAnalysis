@@ -6,5 +6,5 @@ plotly
 nilearn
 pandas
 statsmodels
-fpdf
+reportlab
 kaleido
