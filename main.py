@@ -207,14 +207,17 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
     elements.append(Spacer(1, 12))
 
     # Function to add image to the PDF
-    def add_image(fig, elements, caption):
+    def add_image(fig, elements, caption, is_plotly=False):
         img_buffer = io.BytesIO()
-        fig.savefig(img_buffer, format='png')
+        if is_plotly:
+            fig.write_image(img_buffer, format='png')
+        else:
+            fig.savefig(img_buffer, format='png')
         img_buffer.seek(0)
         img_reader = ImageReader(img_buffer)
         iw, ih = img_reader.getSize()
         aspect = ih / float(iw)
-        width = 6 * inch
+        width = 3 * inch
         height = width * aspect
         img = Image(img_buffer, width=width, height=height)
         elements.append(img)
@@ -223,9 +226,9 @@ def generate_pdf_report(fig_scatter, fig_pie, fig_time_series, fig_3d_brain, fig
         elements.append(Spacer(1, 12))
 
     # Add figures and their captions
-    add_image(fig_scatter, elements, "Figure 1: Volume vs Intensity Scatter Plot")
-    add_image(fig_pie, elements, "Figure 2: Volume Distribution by Region")
-    add_image(fig_3d_brain, elements, "Figure 3: 3D Brain Plot")
+    add_image(fig_scatter, elements, "Figure 1: Volume vs Intensity Scatter Plot", is_plotly=True)
+    add_image(fig_pie, elements, "Figure 2: Volume Distribution by Region", is_plotly=True)
+    add_image(fig_3d_brain, elements, "Figure 3: 3D Brain Plot", is_plotly=True)
     add_image(fig_axial, elements, "Figure 4: Axial Slice View")
     add_image(fig_coronal, elements, "Figure 5: Coronal Slice View")
     add_image(fig_sagittal, elements, "Figure 6: Sagittal Slice View")
