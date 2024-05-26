@@ -7,3 +7,4 @@ nilearn
 pandas
 statsmodels
 fpdf
+kaleido
