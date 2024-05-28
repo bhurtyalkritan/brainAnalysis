@@ -78,7 +78,7 @@ def plot_3d_brain(data, labels_img):
             color=intensities,
             colorscale='Viridis',
             colorbar=dict(
-                title='Proton Density',
+                title='Intensity',
                 thickness=15,
                 xpad=10
             ),
